@@ -1,13 +1,13 @@
-import {Action, Command, Ctx, Message, On, Scene, SceneEnter} from 'nestjs-telegraf';
+import {Ctx, Message, On, Scene, SceneEnter} from 'nestjs-telegraf';
 import {Context} from 'src/interfaces/context.interface';
-import {CLIENT_SCENE_ID, RENAME_CLIENT_SCENE_ID} from "src/app.constants";
-import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
+import {RENAME_CLIENT_SCENE_ID} from "src/app.constants";
 import {BotService} from "src/bot/bot.service";
 
 @Scene(RENAME_CLIENT_SCENE_ID)
 export class RenameClientScene {
     private clientId: number;
     private clientName: number;
+
     constructor(private readonly botApi: BotService) {
     }
 
