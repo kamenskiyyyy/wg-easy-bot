@@ -7,13 +7,12 @@ import {sendMenu} from "src/common/pipes/send-menu.pipe";
 import {BotService} from "src/bot/bot.service";
 import process from "node:process";
 import { Update as TypeUpdate } from 'telegraf/typings/core/types/typegram';
-import {CLIENT_SCENE_ID} from "src/app.constants";
+import {CLIENT_SCENE_ID, CREATE_CLIENT_SCENE_ID} from "src/app.constants";
 
 @Update()
 @UseFilters(TelegrafExceptionFilter)
 export class BotUpdate {
-    constructor(private readonly botApi: BotService) {
-    }
+    constructor() {}
 
     @Start()
     @UseGuards(IsAuthenticatedGuard)
@@ -26,6 +25,12 @@ export class BotUpdate {
     @Hears('📋 Список клиентов')
     async getAllClients(@Ctx() ctx: Context) {
         await ctx.scene.enter(CLIENT_SCENE_ID);
+    }
+
+    @UseGuards(IsAuthenticatedGuard)
+    @Hears('💁🏼‍♂️ Создать клиента')
+    async createClient(@Ctx() ctx: Context) {
+        await ctx.scene.enter(CREATE_CLIENT_SCENE_ID);
     }
 
     @UseGuards(IsAuthenticatedGuard)

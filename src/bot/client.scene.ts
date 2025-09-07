@@ -3,6 +3,7 @@ import {Context} from 'src/interfaces/context.interface';
 import {CLIENT_SCENE_ID, RENAME_CLIENT_SCENE_ID} from "src/app.constants";
 import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {BotService} from "src/bot/bot.service";
+import {sendMenu} from "src/common/pipes/send-menu.pipe";
 
 @Scene(CLIENT_SCENE_ID)
 export class ClientScene {
@@ -16,6 +17,12 @@ export class ClientScene {
     async onSceneEnter(@Ctx() ctx: Context) {
         this.page = 0;
         await this.sendClientsPage(ctx);
+    }
+
+    @Command('leave')
+    async onLeaveCommand(ctx: Context): Promise<void> {
+        await ctx.scene.leave();
+        await sendMenu(ctx);
     }
 
     @Action(/^page:(\d+)$/)
@@ -69,7 +76,7 @@ export class ClientScene {
         }
     }
 
-    @On(['text'])
+    @On(['message'])
     async onMessage(@Message('text') text: string, @Ctx() ctx: Context) {
         const clients = await this.botApi.getAllClients();
         if (!clients || clients.length === 0) {
@@ -78,6 +85,12 @@ export class ClientScene {
         const filteredClients = clients.filter((client: {
             name: string
         }) => client.name.toLowerCase().includes(text.toLowerCase()));
+
+        if (filteredClients.length === 0) {
+            await ctx.reply("🙈 Клиент не найден")
+            await sendMenu(ctx);
+            return;
+        }
 
         const buttons = filteredClients.map(({name, id}) => [
             {text: `• ${name}`, callback_data: `clientId:${id}`},
@@ -106,18 +119,18 @@ export class ClientScene {
 
         let statusButton = []
         if (client.enabled) {
-            statusButton = [{text: '❌ Отключить', callback_data: `statusClient:${client.id}:disable`, }, ]
+            statusButton = [{text: '❌ Отключить', callback_data: `statusClient:${client.id}:disable`,},]
         } else {
-            statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`, }, ]
+            statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`,},]
         }
 
         await ctx.replyWithHTML(message.trim(), {
             reply_markup: {
                 inline_keyboard: [
-                    [{text: '📝 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`, }, ],
+                    [{text: '📝 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`,},],
                     statusButton,
-                    [{text: '📈 Продлить', callback_data: `prolungareClient:${client.id}`, }, ],
-                    [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`, }, ],
+                    [{text: '📈 Продлить', callback_data: `prolungareClient:${client.id}`,},],
+                    [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,},],
                 ],
             }
         });
@@ -137,6 +150,7 @@ export class ClientScene {
         } else {
             await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
         }
+        await sendMenu(ctx);
     }
 
     @Action(/renameClient/)
@@ -147,11 +161,8 @@ export class ClientScene {
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
         const clientId = userAnswer?.split(':')[1];
         const clientName = userAnswer?.split(':')[2];
-        await ctx.scene.enter(RENAME_CLIENT_SCENE_ID, { clientId, clientName });
+        await ctx.scene.enter(RENAME_CLIENT_SCENE_ID, {clientId, clientName});
     }
 
-    @Command('leave')
-    async onLeaveCommand(ctx: Context): Promise<void> {
-        await ctx.scene.leave();
-    }
+
 }

@@ -2,9 +2,9 @@ export const WG_SERVER = process.env.SERVER_URL
 export const WG_SERVER_LOGIN = process.env.WG_API_USER
 export const WG_SERVER_PASSWORD = process.env.WG_API_PASS
 
-export const REGISTER_SCENE_ID = 'REGISTER_SCENE_ID';
 export const CLIENT_SCENE_ID = 'CLIENT_SCENE_ID';
 export const RENAME_CLIENT_SCENE_ID = 'RENAME_CLIENT_SCENE_ID';
+export const CREATE_CLIENT_SCENE_ID = 'CREATE_CLIENT_SCENE_ID';
 
 export const STICKER_AMAZING =
   'CAACAgIAAxkBAAEMq55mwwGEKlqwhQUduh0er1THxklgAgAC4EAAAhRkOEv1Y-BEGApX9jUE';
