@@ -6,6 +6,7 @@ import {BotService} from "src/bot/bot.service";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
 import {format} from "date-fns";
 import sharp from "sharp";
+import {getClientInfo} from "src/bot/utils";
 
 @Scene(CLIENT_SCENE_ID)
 export class ClientScene {
@@ -109,17 +110,10 @@ export class ClientScene {
     ): Promise<void> {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
-        const clientId = userAnswer?.split(':')[1];
+        const clientId = +userAnswer?.split(':')[1];
 
         const client = await this.botApi.getClientById(clientId);
-
-        const message = `Клиент: ${client.name}
-
-ID: ${client.id}
-Доступ: ${client.expiresAt ? `до ${format(new Date(client.expiresAt), 'dd.MM.yyyy')}` : 'Не ограничен'}
-IPv4: ${client.ipv4Address}
-Статус: ${client.enabled ? '✅ Включен' : '❌ Выключен'}
-Дата создания: ${format(new Date(client.createdAt), 'dd MM yyyy')}`;
+        const message = await getClientInfo(clientId)
 
         let statusButton = []
         if (client.enabled) {
@@ -149,11 +143,13 @@ IPv4: ${client.ipv4Address}
     ): Promise<void> {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
-        const clientId = userAnswer?.split(':')[1];
+        const clientId = +userAnswer?.split(':')[1];
         const action = userAnswer?.split(':')[2];
         const result = await this.botApi.changeClientStatus(clientId, action);
+        const clientInfo = await getClientInfo(clientId)
         if (result) {
             await ctx.reply('Статус клиента изменён!');
+            await ctx.replyWithHTML(clientInfo)
         } else {
             await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
         }

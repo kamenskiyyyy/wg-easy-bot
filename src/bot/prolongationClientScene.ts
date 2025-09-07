@@ -5,6 +5,7 @@ import {BotService} from "src/bot/bot.service";
 import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
 import {addDays} from "date-fns";
+import {getClientInfo} from "src/bot/utils";
 
 @Scene(PROLONGATION_CLIENT_SCENE_ID)
 export class ProlongationClientScene {
@@ -42,8 +43,10 @@ export class ProlongationClientScene {
         const expiresAt = period === 0 ? null : addDays(new Date(), +period);
 
         const result = await this.botApi.prolongationClientPeriod(this.clientId, expiresAt)
+        const clientInfo = await getClientInfo(this.clientId)
         if (result) {
             await ctx.reply(`✅ Доступ для клиента ${this.clientName} успешно продлен`)
+            await ctx.replyWithHTML(clientInfo)
         } else await ctx.reply(`Не удалось продлить доступ дял клиента`);
         await sendMenu(ctx);
         await ctx.scene.leave();

@@ -8,12 +8,12 @@ export class BotService {
         return clients.data.reverse()
     }
 
-    async getClientById(id: string) {
+    async getClientById(id: number) {
         const clients = await  wgApi.get(`/client/${id}`);
         return clients.data
     }
 
-    async changeClientStatus(id: string, status: string) {
+    async changeClientStatus(id: number, status: string) {
         const statusChange = await wgApi.post(`/client/${id}/${status}`);
         return statusChange.status === 200
     }
