@@ -48,8 +48,8 @@ export class ClientScene {
 
         const totalPages = Math.ceil(clients.length / this.pageSize);
 
-        const buttons = pageClients.map(({name, id}) => [
-            {text: `• ${name}`, callback_data: `clientId:${id}`},
+        const buttons = pageClients.map(({name, id, enabled}) => [
+            {text: `• ${name} ${enabled ? "" : "🚫"}`, callback_data: `clientId:${id}`},
         ]);
 
         const navButtons: any[] = [];
