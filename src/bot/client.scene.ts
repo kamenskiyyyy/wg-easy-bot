@@ -5,6 +5,7 @@ import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {BotService} from "src/bot/bot.service";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
 import {format} from "date-fns";
+import sharp from "sharp";
 
 @Scene(CLIENT_SCENE_ID)
 export class ClientScene {
@@ -131,7 +132,9 @@ IPv4: ${client.ipv4Address}
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
-                    [{text: '📝 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`,},],
+                    [{text: '📄 Получить конфиг', callback_data: `getConfigFileClient:${client.id}:${client.name}`,},],
+                    [{text: '📷 QR код', callback_data: `getQRClient:${client.id}:${client.name}`,},],
+                    [{text: '✍🏻 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`,},],
                     statusButton,
                     [{text: '📈 Продлить', callback_data: `prolongationClient:${client.id}:${client.name}`,},],
                     [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,},],
@@ -194,6 +197,53 @@ IPv4: ${client.ipv4Address}
         } else {
             await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
         }
+        await ctx.scene.leave();
+        await sendMenu(ctx);
+    }
+
+    @Action(/getConfigFileClient/)
+    async getConfigurationFileClient(
+        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate },
+    ): Promise<void> {
+        const cbQuery = ctx.update.callback_query;
+        const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
+        const clientId = userAnswer?.split(':')[1];
+        const clientName = userAnswer?.split(':')[2];
+
+        const config = await this.botApi.getClientConfig(clientId);
+
+        await ctx.replyWithDocument(
+            {
+                source: Buffer.from(config, 'utf-8'),
+                filename: 'vpn.conf',
+            },
+            { caption: `Конфигурационный файл VPN для ${clientName}. Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из файла"` }
+        );
+        await ctx.scene.leave();
+        await sendMenu(ctx);
+    }
+
+    @Action(/getQRClient/)
+    async getQrCodeForClient(
+        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate },
+    ): Promise<void> {
+        const cbQuery = ctx.update.callback_query;
+        const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
+        const clientId = userAnswer?.split(':')[1];
+        const clientName = userAnswer?.split(':')[2];
+
+        const svgText = await this.botApi.getClientQr(clientId);
+
+        const pngBuffer = await sharp(Buffer.from(svgText))
+            .resize(800, 800)
+            .png()
+            .toBuffer();
+
+        // Отправляем как фото
+        await ctx.replyWithPhoto(
+            { source: pngBuffer },
+            { caption: `QR-код VPN для ${clientName}. Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из QR-кода"` },
+        );
         await ctx.scene.leave();
         await sendMenu(ctx);
     }

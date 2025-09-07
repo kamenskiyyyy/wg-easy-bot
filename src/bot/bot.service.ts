@@ -28,6 +28,7 @@ export class BotService {
     async prolongationClientPeriod(id: number, expiresAt: Date) {
         const client = await wgApi.get(`/client/${id}`)
         client.data.expiresAt = expiresAt
+        client.data.enabled = true;
         const result = await wgApi.post(`/client/${id}`, client.data)
         return result.status === 200
     }
@@ -43,10 +44,12 @@ export class BotService {
     }
 
     async getClientConfig(id: string) {
-
+        const config = await wgApi.get(`/client/${id}/configuration`)
+        return config.data
     }
 
     async getClientQr(id: string) {
-
+        const qr = await wgApi.get(`/client/${id}/qrcode.svg`)
+        return qr.data
     }
 }
