@@ -31,6 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags:
-            - ${{ secrets.DOCKERHUB_USERNAME }}/wg-easy-bot:${{ env.SHORT_SHA }}
-            - ${{ secrets.DOCKERHUB_USERNAME }}/wg-easy-bot:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/wg-easy-bot:${{ env.SHORT_SHA }},${{ secrets.DOCKERHUB_USERNAME }}/wg-easy-bot:latest
