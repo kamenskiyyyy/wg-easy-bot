@@ -24,4 +24,29 @@ export class BotService {
         const result = await wgApi.post(`/client/${id}`, client.data)
         return result.status === 200
     }
+
+    async prolongationClientPeriod(id: number, expiresAt: Date) {
+        const client = await wgApi.get(`/client/${id}`)
+        client.data.expiresAt = expiresAt
+        const result = await wgApi.post(`/client/${id}`, client.data)
+        return result.status === 200
+    }
+
+    async createClient(name: string, expiresAt: Date) {
+        const result = await wgApi.post('/client', {name, expiresAt})
+        return result.status === 200
+    }
+
+    async deleteClient(id: string) {
+        const result = await wgApi.delete(`/client/${id}`)
+        return result.status === 200
+    }
+
+    async getClientConfig(id: string) {
+
+    }
+
+    async getClientQr(id: string) {
+
+    }
 }

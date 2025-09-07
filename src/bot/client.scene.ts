@@ -1,9 +1,10 @@
 import {Action, Command, Ctx, Message, On, Scene, SceneEnter} from 'nestjs-telegraf';
 import {Context} from 'src/interfaces/context.interface';
-import {CLIENT_SCENE_ID, RENAME_CLIENT_SCENE_ID} from "src/app.constants";
+import {CLIENT_SCENE_ID, PROLONGATION_CLIENT_SCENE_ID, RENAME_CLIENT_SCENE_ID} from "src/app.constants";
 import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {BotService} from "src/bot/bot.service";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
+import {format} from "date-fns";
 
 @Scene(CLIENT_SCENE_ID)
 export class ClientScene {
@@ -88,6 +89,7 @@ export class ClientScene {
 
         if (filteredClients.length === 0) {
             await ctx.reply("🙈 Клиент не найден")
+            await ctx.scene.leave();
             await sendMenu(ctx);
             return;
         }
@@ -110,12 +112,13 @@ export class ClientScene {
 
         const client = await this.botApi.getClientById(clientId);
 
-        const message = `<b>💻 Клиент:</b> ${client.name}
+        const message = `Клиент: ${client.name}
 
-<b>🆔 ID:</b> ${client.id}
-<b>🌐 IPv4:</b> <code>${client.ipv4Address}</code>
-<b>⚡ Статус:</b> ${client.enabled ? '✅ Включен' : '❌ Выключен'}
-<b>📅 Дата создания:</b> ${client.createdAt}`;
+ID: ${client.id}
+Доступ: ${client.expiresAt ? `до ${format(new Date(client.expiresAt), 'dd.MM.yyyy')}` : 'Не ограничен'}
+IPv4: ${client.ipv4Address}
+Статус: ${client.enabled ? '✅ Включен' : '❌ Выключен'}
+Дата создания: ${format(new Date(client.createdAt), 'dd MM yyyy')}`;
 
         let statusButton = []
         if (client.enabled) {
@@ -124,12 +127,13 @@ export class ClientScene {
             statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`,},]
         }
 
-        await ctx.replyWithHTML(message.trim(), {
+        await ctx.replyWithHTML(message, {
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{text: '📝 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`,},],
                     statusButton,
-                    [{text: '📈 Продлить', callback_data: `prolungareClient:${client.id}`,},],
+                    [{text: '📈 Продлить', callback_data: `prolongationClient:${client.id}:${client.name}`,},],
                     [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,},],
                 ],
             }
@@ -150,6 +154,7 @@ export class ClientScene {
         } else {
             await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
         }
+        await ctx.scene.leave();
         await sendMenu(ctx);
     }
 
@@ -164,5 +169,32 @@ export class ClientScene {
         await ctx.scene.enter(RENAME_CLIENT_SCENE_ID, {clientId, clientName});
     }
 
+    @Action(/prolongationClient/)
+    async prolongationClientPeriod(
+        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate },
+    ): Promise<void> {
+        const cbQuery = ctx.update.callback_query;
+        const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
+        const clientId = userAnswer?.split(':')[1];
+        const clientName = userAnswer?.split(':')[2];
+        await ctx.scene.enter(PROLONGATION_CLIENT_SCENE_ID, {clientId, clientName});
+    }
 
+    @Action(/deleteClient/)
+    async deleteClient(
+        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate },
+    ): Promise<void> {
+        const cbQuery = ctx.update.callback_query;
+        const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
+        const clientId = userAnswer?.split(':')[1];
+
+        const result = await this.botApi.deleteClient(clientId);
+        if (result) {
+            await ctx.reply("🗑️ Клиент удалён!");
+        } else {
+            await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
+        }
+        await ctx.scene.leave();
+        await sendMenu(ctx);
+    }
 }
