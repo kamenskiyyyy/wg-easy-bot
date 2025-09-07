@@ -54,7 +54,7 @@ export class ClientScene {
             buttons.push(navButtons);
         }
 
-        const messageText = `<b>Выберите клиента (стр. ${this.page + 1}/${totalPages}):</b>`;
+        const messageText = `<b>Выберите клиента (стр. ${this.page + 1}/${totalPages}) или напишите его имя:</b>`;
 
         if (edit) {
             await ctx.editMessageText(messageText, {
@@ -68,7 +68,21 @@ export class ClientScene {
         }
     }
 
+    @On(['text'])
+    async onMessage(@Message('text') text: string, @Ctx() ctx: Context) {
+        const clients = await this.botApi.getAllClients();
+        if (!clients || clients.length === 0) {
+            return ctx.reply('🙈 У вас нет клиентов, добавьте их в WG-easy');
+        }
+        const filteredClients = clients.filter((client: { name: string }) => client.name.toLowerCase().includes(text.toLowerCase()));
 
+        const buttons = filteredClients.map(({ name, id }) => [
+            { text: `• ${name}`, callback_data: `clientId:${id}` },
+        ]);
+        await ctx.replyWithHTML("Найдено по запросу:", {
+            reply_markup: { inline_keyboard: buttons },
+        });
+    }
 
     @Action(/clientId/)
     async getClientById(
