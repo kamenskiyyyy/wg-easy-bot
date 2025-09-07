@@ -8,24 +8,24 @@ export class BotService {
         return clients.data.reverse()
     }
 
-    async getClientById(id: number) {
+    async getClientById(id: string) {
         const clients = await  wgApi.get(`/client/${id}`);
         return clients.data
     }
 
-    async changeClientStatus(id: number, status: string) {
+    async changeClientStatus(id: string, status: string) {
         const statusChange = await wgApi.post(`/client/${id}/${status}`);
         return statusChange.status === 200
     }
 
-    async renameClient(id: number, name: string) {
+    async renameClient(id: string, name: string) {
         const client = await wgApi.get(`/client/${id}`)
         client.data.name = name
         const result = await wgApi.post(`/client/${id}`, client.data)
         return result.status === 200
     }
 
-    async prolongationClientPeriod(id: number, expiresAt: Date) {
+    async prolongationClientPeriod(id: string, expiresAt: Date) {
         const client = await wgApi.get(`/client/${id}`)
         client.data.expiresAt = expiresAt
         client.data.enabled = true;

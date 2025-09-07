@@ -7,7 +7,7 @@ import {getClientInfo} from "src/bot/utils";
 
 @Scene(RENAME_CLIENT_SCENE_ID)
 export class RenameClientScene {
-    private clientId: number;
+    private clientId: string;
     private clientName: string;
 
     constructor(private readonly botApi: BotService) {
@@ -18,7 +18,7 @@ export class RenameClientScene {
         this.clientId = ctx.scene.state['clientId'];
         this.clientName = ctx.scene.state['clientName'];
         await ctx.reply(`👀 Введите новое имя клиента`);
-        await ctx.reply(this.clientName.trim());
+        await ctx.reply(this.clientName);
     }
 
 
@@ -28,9 +28,9 @@ export class RenameClientScene {
         const result = await this.botApi.renameClient(this.clientId, text);
         const clientInfo = await getClientInfo(this.clientId)
         if (result) {
-            await ctx.reply(`👀 Имя клиента ${this.clientName} изменено на ${text}`)
+            await ctx.reply(`✅ Имя клиента: ${this.clientName} изменено на: ${text}`)
             await ctx.replyWithHTML(clientInfo)
-        } else await ctx.reply(`👀 Не удалось изменить имя клиента ${this.clientName}`)
+        } else await ctx.reply(`😭 Не удалось изменить имя клиента ${this.clientName}`)
         await ctx.scene.leave();
         await sendMenu(ctx);
     }

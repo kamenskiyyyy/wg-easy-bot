@@ -1,7 +1,7 @@
 import {format} from "date-fns";
 import {BotService} from "src/bot/bot.service";
 
-export const getClientInfo = async (clientId: number) => {
+export const getClientInfo = async (clientId: string) => {
     const botApi = new BotService();
     const client = await botApi.getClientById(clientId);
 

@@ -96,8 +96,8 @@ export class ClientScene {
             return;
         }
 
-        const buttons = filteredClients.map(({name, id}) => [
-            {text: `• ${name}`, callback_data: `clientId:${id}`},
+        const buttons = filteredClients.map(({name, id, enabled}) => [
+            {text: `• ${name} ${enabled ? "" : "🚫"}`, callback_data: `clientId:${id}`},
         ]);
         await ctx.replyWithHTML("Найдено по запросу:", {
             reply_markup: {inline_keyboard: buttons},
@@ -110,27 +110,27 @@ export class ClientScene {
     ): Promise<void> {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
-        const clientId = +userAnswer?.split(':')[1];
+        const clientId = userAnswer?.split(':')[1];
 
         const client = await this.botApi.getClientById(clientId);
         const message = await getClientInfo(clientId)
 
         let statusButton = []
         if (client.enabled) {
-            statusButton = [{text: '❌ Отключить', callback_data: `statusClient:${client.id}:disable`,},]
+            statusButton = [{text: '❌ Отключить', callback_data: `statusClient:${client.id}:disable`}]
         } else {
-            statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`,},]
+            statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`},]
         }
 
         await ctx.replyWithHTML(message, {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
-                    [{text: '📄 Получить конфиг', callback_data: `getConfigFileClient:${client.id}:${client.name}`,},],
-                    [{text: '📷 QR код', callback_data: `getQRClient:${client.id}:${client.name}`,},],
-                    [{text: '✍🏻 Редактировать имя', callback_data: `renameClient:${client.id}:${client.name}`,},],
+                    [{text: '📄 Получить конфиг', callback_data: `getConfigFileClient:${client.id}`,},],
+                    [{text: '📷 QR код', callback_data: `getQRClient:${client.id}`,},],
+                    [{text: '✍🏻 Редактировать имя', callback_data: `renameClient:${client.id}`,},],
                     statusButton,
-                    [{text: '📈 Продлить', callback_data: `prolongationClient:${client.id}:${client.name}`,},],
+                    [{text: '📈 Продлить', callback_data: `prolongationClient:${client.id}`,},],
                     [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,},],
                 ],
             }
@@ -143,7 +143,7 @@ export class ClientScene {
     ): Promise<void> {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
-        const clientId = +userAnswer?.split(':')[1];
+        const clientId = userAnswer?.split(':')[1];
         const action = userAnswer?.split(':')[2];
         const result = await this.botApi.changeClientStatus(clientId, action);
         const clientInfo = await getClientInfo(clientId)
@@ -164,7 +164,8 @@ export class ClientScene {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
         const clientId = userAnswer?.split(':')[1];
-        const clientName = userAnswer?.split(':')[2];
+        const client = await this.botApi.getClientById(clientId)
+        const clientName = client.name
         await ctx.scene.enter(RENAME_CLIENT_SCENE_ID, {clientId, clientName});
     }
 
@@ -175,7 +176,8 @@ export class ClientScene {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
         const clientId = userAnswer?.split(':')[1];
-        const clientName = userAnswer?.split(':')[2];
+        const client = await this.botApi.getClientById(clientId)
+        const clientName = client.name
         await ctx.scene.enter(PROLONGATION_CLIENT_SCENE_ID, {clientId, clientName});
     }
 
@@ -204,8 +206,8 @@ export class ClientScene {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
         const clientId = userAnswer?.split(':')[1];
-        const clientName = userAnswer?.split(':')[2];
-
+        const client = await this.botApi.getClientById(clientId)
+        const clientName = client.name
         const config = await this.botApi.getClientConfig(clientId);
 
         await ctx.replyWithDocument(
@@ -226,7 +228,8 @@ export class ClientScene {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
         const clientId = userAnswer?.split(':')[1];
-        const clientName = userAnswer?.split(':')[2];
+        const client = await this.botApi.getClientById(clientId)
+        const clientName = client.name
 
         const svgText = await this.botApi.getClientQr(clientId);
 

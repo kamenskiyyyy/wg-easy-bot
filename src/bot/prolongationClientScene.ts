@@ -9,7 +9,7 @@ import {getClientInfo} from "src/bot/utils";
 
 @Scene(PROLONGATION_CLIENT_SCENE_ID)
 export class ProlongationClientScene {
-    private clientId: number;
+    private clientId: string;
     private clientName: string;
 
     constructor(private readonly botApi: BotService) {
@@ -47,7 +47,7 @@ export class ProlongationClientScene {
         if (result) {
             await ctx.reply(`✅ Доступ для клиента ${this.clientName} успешно продлен`)
             await ctx.replyWithHTML(clientInfo)
-        } else await ctx.reply(`Не удалось продлить доступ дял клиента`);
+        } else await ctx.reply(`😭Не удалось продлить доступ для клиента`);
         await sendMenu(ctx);
         await ctx.scene.leave();
     }

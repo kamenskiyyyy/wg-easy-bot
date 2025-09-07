@@ -47,7 +47,7 @@ export class CreateClientScene {
         const result = await this.botApi.createClient(this.clientName, expiresAt)
         if (result) {
             await ctx.reply(`✅ Клиент ${this.clientName} успешно создан`)
-        } else await ctx.reply(`Не удалось создать клиента`);
+        } else await ctx.reply(`😭 Не удалось создать клиента`);
         await sendMenu(ctx);
         await ctx.scene.leave();
     }
