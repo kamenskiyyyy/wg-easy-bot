@@ -1,6 +1,6 @@
 import {Action, Ctx, Message, On, Scene, SceneEnter} from 'nestjs-telegraf';
 import {Context} from 'src/interfaces/context.interface';
-import {CREATE_CLIENT_SCENE_ID} from "src/app.constants";
+import {CLIENT_SCENE_ID, CREATE_CLIENT_SCENE_ID} from "src/app.constants";
 import {BotService} from "src/bot/bot.service";
 import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
@@ -22,14 +22,22 @@ export class CreateClientScene {
     async onMessage(@Message('text') text: string, @Ctx() ctx: Context) {
         this.clientName = text;
 
-        const periods = [0, 3, 14, 30, 60, 180, 365]
+        const periods = [3, 14, 30, 365]
+
+        let buttons = [[{text: "Без ограничений", callback_data: "periodClient:0"}]]
+
+        const periodButtons = periods.map((period) => {
+            return {
+                text: `${period === 0 ? "Без ограничений" : period + ' дней'}`,
+                callback_data: `periodClient:${period}`
+            }
+        })
+
+        buttons.push([...periodButtons])
 
         await ctx.reply("Выберите период для клиента", {
             reply_markup: {
-                inline_keyboard: periods.map((period) => [{
-                    text: `${period === 0 ? "Без ограничений" : period + ' дней'}`,
-                    callback_data: `periodClient:${period}`
-                }])
+                inline_keyboard: buttons
             }
         });
     }
@@ -44,11 +52,14 @@ export class CreateClientScene {
 
         const expiresAt = period === 0 ? null : addDays(new Date(), +period);
 
-        const result = await this.botApi.createClient(this.clientName, expiresAt)
-        if (result) {
+        const client = await this.botApi.createClient(this.clientName, expiresAt)
+        if (client) {
             await ctx.reply(`✅ Клиент ${this.clientName} успешно создан`)
-        } else await ctx.reply(`😭 Не удалось создать клиента`);
-        await sendMenu(ctx);
-        await ctx.scene.leave();
+            await ctx.scene.enter(CLIENT_SCENE_ID, {clientId: client.id});
+        } else {
+            await ctx.reply(`😭 Не удалось создать клиента`);
+            await sendMenu(ctx);
+            await ctx.scene.leave();
+        }
     }
 }

@@ -1,12 +1,9 @@
-import {Action, Ctx, Hears, On, Sender, Start, Update,} from 'nestjs-telegraf';
+import {Ctx, Hears, On, Sender, Start, Update,} from 'nestjs-telegraf';
 import {Context} from 'src/interfaces/context.interface';
 import {UseFilters, UseGuards} from "@nestjs/common";
 import {IsAuthenticatedGuard} from "src/common/guards/isAuthenticated.guard";
 import {TelegrafExceptionFilter} from "src/common/filters/telegraf-exception.filter";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
-import {BotService} from "src/bot/bot.service";
-import process from "node:process";
-import { Update as TypeUpdate } from 'telegraf/typings/core/types/typegram';
 import {CLIENT_SCENE_ID, CREATE_CLIENT_SCENE_ID} from "src/app.constants";
 
 @Update()

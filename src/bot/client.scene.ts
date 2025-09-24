@@ -4,7 +4,6 @@ import {CLIENT_SCENE_ID, PROLONGATION_CLIENT_SCENE_ID, RENAME_CLIENT_SCENE_ID} f
 import {Update as TypeUpdate} from "telegraf/typings/core/types/typegram";
 import {BotService} from "src/bot/bot.service";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
-import {format} from "date-fns";
 import sharp from "sharp";
 import {getClientInfo} from "src/bot/utils";
 
@@ -17,12 +16,20 @@ export class ClientScene {
     }
 
     @SceneEnter()
-    async onSceneEnter(@Ctx() ctx: Context) {
+    async onSceneEnter(@Ctx() ctx: Context & { scene: { state: { clientId?: string } }, update: TypeUpdate.CallbackQueryUpdate }) {
         this.page = 0;
-        await this.sendClientsPage(ctx);
+
+        const { clientId } = ctx.scene.state;
+
+        if (clientId) {
+            await this.getClientById(ctx, clientId);
+            ctx.scene.state = {clientId: undefined};
+        } else {
+            await this.sendClientsPage(ctx);
+        }
     }
 
-    @Command('leave')
+    @Action('exit')
     async onLeaveCommand(ctx: Context): Promise<void> {
         await ctx.scene.leave();
         await sendMenu(ctx);
@@ -65,7 +72,9 @@ export class ClientScene {
             buttons.push(navButtons);
         }
 
-        const messageText = `<b>Выберите клиента (стр. ${this.page + 1}/${totalPages}) или напишите его имя:</b>`;
+        buttons.push([{text: '❌ Выйти', callback_data: 'exit'}]);
+
+        const messageText = `Всего клиентов: ${clients.length} \n<b>Выберите клиента (стр. ${this.page + 1}/${totalPages}) или напишите его имя:</b>`;
 
         if (edit) {
             await ctx.editMessageText(messageText, {
@@ -90,15 +99,16 @@ export class ClientScene {
         }) => client.name.toLowerCase().includes(text.toLowerCase()));
 
         if (filteredClients.length === 0) {
-            await ctx.reply("🙈 Клиент не найден")
-            await ctx.scene.leave();
-            await sendMenu(ctx);
+            await ctx.reply("🙈 Клиент не найден", {
+                reply_markup: { inline_keyboard: [[{text: '❌ Выйти', callback_data: 'exit'}]],}
+            })
             return;
         }
 
         const buttons = filteredClients.map(({name, id, enabled}) => [
             {text: `• ${name} ${enabled ? "" : "🚫"}`, callback_data: `clientId:${id}`},
         ]);
+        buttons.push([{text: '❌ Выйти', callback_data: 'exit'}]);
         await ctx.replyWithHTML("Найдено по запросу:", {
             reply_markup: {inline_keyboard: buttons},
         });
@@ -106,18 +116,18 @@ export class ClientScene {
 
     @Action(/clientId/)
     async getClientById(
-        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate },
+        @Ctx() ctx: Context & { update: TypeUpdate.CallbackQueryUpdate }, id?: string,
     ): Promise<void> {
         const cbQuery = ctx.update.callback_query;
         const userAnswer = 'data' in cbQuery ? cbQuery.data : null;
-        const clientId = userAnswer?.split(':')[1];
+        const clientId = id || userAnswer?.split(':')[1];
 
         const client = await this.botApi.getClientById(clientId);
         const message = await getClientInfo(clientId)
 
         let statusButton = []
         if (client.enabled) {
-            statusButton = [{text: '❌ Отключить', callback_data: `statusClient:${client.id}:disable`}]
+            statusButton = [{text: '🚫 Отключить', callback_data: `statusClient:${client.id}:disable`}]
         } else {
             statusButton = [{text: '✅ Включить', callback_data: `statusClient:${client.id}:enable`},]
         }
@@ -126,12 +136,10 @@ export class ClientScene {
             parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
-                    [{text: '📄 Получить конфиг', callback_data: `getConfigFileClient:${client.id}`,},],
-                    [{text: '📷 QR код', callback_data: `getQRClient:${client.id}`,},],
-                    [{text: '✍🏻 Редактировать имя', callback_data: `renameClient:${client.id}`,},],
-                    statusButton,
-                    [{text: '📈 Продлить', callback_data: `prolongationClient:${client.id}`,},],
-                    [{text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,},],
+                    [{text: '📄 Получить конфиг', callback_data: `getConfigFileClient:${client.id}`,},{text: '📷 QR код', callback_data: `getQRClient:${client.id}`,}],
+                    [{text: '✍🏻 Редактировать имя', callback_data: `renameClient:${client.id}`,},{text: '💪🏻 Продлить', callback_data: `prolongationClient:${client.id}`,}],
+                    [...statusButton, {text: '🗑️ Удалить', callback_data: `deleteClient:${client.id}`,}],
+                    [{text: '❌ Выйти', callback_data: 'exit'}]
                 ],
             }
         });
@@ -151,10 +159,12 @@ export class ClientScene {
             await ctx.reply('Статус клиента изменён!');
             await ctx.replyWithHTML(clientInfo)
         } else {
-            await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
+            await ctx.reply('🙈 Что-то пошло не так, попробуйте позже', {
+                reply_markup: {
+                    inline_keyboard: [[{text: '❌ Выйти', callback_data: 'exit'}]],
+                }
+            });
         }
-        await ctx.scene.leave();
-        await sendMenu(ctx);
     }
 
     @Action(/renameClient/)
@@ -195,8 +205,6 @@ export class ClientScene {
         } else {
             await ctx.reply('🙈 Что-то пошло не так, попробуйте позже');
         }
-        await ctx.scene.leave();
-        await sendMenu(ctx);
     }
 
     @Action(/getConfigFileClient/)
@@ -215,10 +223,8 @@ export class ClientScene {
                 source: Buffer.from(config, 'utf-8'),
                 filename: 'vpn.conf',
             },
-            { caption: `Конфигурационный файл VPN для ${clientName}. Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из файла"` }
+            { caption: `Конфигурационный файл VPN для "${clientName}". Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из файла"` }
         );
-        await ctx.scene.leave();
-        await sendMenu(ctx);
     }
 
     @Action(/getQRClient/)
@@ -241,9 +247,7 @@ export class ClientScene {
         // Отправляем как фото
         await ctx.replyWithPhoto(
             { source: pngBuffer },
-            { caption: `QR-код VPN для ${clientName}. Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из QR-кода"` },
+            { caption: `QR-код VPN для "${clientName}". Необходимо зайти в приложение WireGuard и выбрать опцию "Создать из QR-кода"` },
         );
-        await ctx.scene.leave();
-        await sendMenu(ctx);
     }
 }

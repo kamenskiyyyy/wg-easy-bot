@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import {Injectable} from '@nestjs/common';
 import {wgApi} from "src/api";
 
 @Injectable()
@@ -11,6 +11,11 @@ export class BotService {
     async getClientById(id: string) {
         const clients = await  wgApi.get(`/client/${id}`);
         return clients.data
+    }
+
+    async getClientByName(clientName: string) {
+        const clients = await wgApi.get(`/client`);
+        return clients.data.find(({name}) => name.toLowerCase() === clientName.toLowerCase())
     }
 
     async changeClientStatus(id: string, status: string) {
@@ -35,7 +40,9 @@ export class BotService {
 
     async createClient(name: string, expiresAt: Date) {
         const result = await wgApi.post('/client', {name, expiresAt})
-        return result.status === 200
+        if (result.status === 200) {
+            return await this.getClientByName(name)
+        }
     }
 
     async deleteClient(id: string) {
