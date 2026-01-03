@@ -4,7 +4,7 @@ import {UseFilters, UseGuards} from "@nestjs/common";
 import {IsAuthenticatedGuard} from "src/common/guards/isAuthenticated.guard";
 import {TelegrafExceptionFilter} from "src/common/filters/telegraf-exception.filter";
 import {sendMenu} from "src/common/pipes/send-menu.pipe";
-import {CLIENT_SCENE_ID, CREATE_CLIENT_SCENE_ID} from "src/app.constants";
+import {CLIENT_SCENE_ID, CREATE_CLIENT_SCENE_ID, SETUP_BLOCK_CLIENTS_SCENE_ID} from "src/app.constants";
 
 @Update()
 @UseFilters(TelegrafExceptionFilter)
@@ -28,6 +28,12 @@ export class BotUpdate {
     @Hears('💁🏼‍♂️ Создать клиента')
     async createClient(@Ctx() ctx: Context) {
         await ctx.scene.enter(CREATE_CLIENT_SCENE_ID);
+    }
+
+    @UseGuards(IsAuthenticatedGuard)
+    @Hears('🚫 Заблокировать всех клиентов')
+    async blockAllClients(@Ctx() ctx: Context) {
+        await ctx.scene.enter(SETUP_BLOCK_CLIENTS_SCENE_ID);
     }
 
     @UseGuards(IsAuthenticatedGuard)

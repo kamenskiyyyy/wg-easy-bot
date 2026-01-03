@@ -59,4 +59,13 @@ export class BotService {
         const qr = await wgApi.get(`/client/${id}/qrcode.svg`)
         return qr.data
     }
+
+    async blockAllClients(expiresAt: Date) {
+        const clients = await this.getAllClients();
+        for (const client of clients) {
+            console.log(`Setup block date for client ${client.name} with id ${client.id} at ${expiresAt}`)
+            await this.prolongationClientPeriod(client.id, expiresAt)
+        }
+        return true
+    }
 }
