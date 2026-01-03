@@ -64,7 +64,11 @@ export class BotService {
         const clients = await this.getAllClients();
         for (const client of clients) {
             console.log(`Setup block date for client ${client.name} with id ${client.id} at ${expiresAt}`)
-            await this.prolongationClientPeriod(client.id, expiresAt)
+            try {
+                await this.prolongationClientPeriod(client.id, expiresAt)
+            } catch (e) {
+                console.log(`Failed to block client ${client.name} with id ${client.id}: ${e.message}`)
+            }
         }
         return true
     }
